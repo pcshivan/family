@@ -244,11 +244,7 @@
     let isConnected = false;
     
     // Get or generate a unique ID for this user
-    let userId = localStorage.getItem('chatUserId');
-    if (!userId) {
-      userId = 'user_' + Math.random().toString(36).substring(2, 9);
-      localStorage.setItem('chatUserId', userId);
-    }
+    const userId = 'user_' + Math.random().toString(36).substring(2, 9);
     
     // Get URL parameters for authentication
     const urlParams = new URLSearchParams(window.location.search);
