@@ -103,7 +103,11 @@
     }
     
     #debug {
-       display: none
+       display: none !important;
+       visibility: hidden !important;
+       height: 0 !important;
+       position: absolute !important;
+       left: -9999px !important;
     }
     
     /* Fix for iOS height issues */
