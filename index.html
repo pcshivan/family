@@ -97,7 +97,7 @@
     
     #test-read, #test-write {
       background: #888;
-      flex: 1;
+      flex: 0;
     }
     
     #debug {
@@ -139,7 +139,21 @@
   <!-- Load Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  
+
+  <script>
+  // Immediately remove debug panel when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      var debugPanel = document.getElementById('debug');
+      if (debugPanel) {
+        debugPanel.parentNode.removeChild(debugPanel);
+      }
+      
+      var testArea = document.getElementById('test-area');
+      if (testArea) {
+        testArea.parentNode.removeChild(testArea);
+      }
+    });
+  </script>
   <script>
     // Debug logging function
     function log(message) {
