@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Notes</title>
   <style>
     * {
@@ -41,7 +41,7 @@
       }
     }
     
-    .messages {
+    #messages {
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
@@ -49,43 +49,16 @@
       background: white;
     }
     
-    .message-row {
-      margin-bottom: 16px;
-      display: flex;
-      flex-direction: column;
-      clear: both;
-      max-width: 75%;
+    .sent {
+      text-align: right;
+      margin-bottom: 8px;
+      color: #2196F3;
     }
     
-    .message-row.sent {
-      align-self: flex-end;
-      align-items: flex-end;
-      float: right;
-    }
-    
-    .message-row.received {
-      align-self: flex-start;
-      align-items: flex-start;
-      float: left;
-    }
-    
-    .message {
-      padding: 10px 12px;
-      border-radius: 18px;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-      white-space: pre-wrap;
-      display: inline-block;
-    }
-    
-    .sent .message {
-      background-color: #e3f2fd;
-      color: #000;
-    }
-    
-    .received .message {
-      background-color: #f1f0f0;
-      color: #000;
+    .received {
+      text-align: left;
+      margin-bottom: 8px;
+      color: #333;
     }
     
     .input-area {
@@ -106,40 +79,43 @@
       font-size: 16px;
     }
     
-    #send-button {
-      background: none;
+    #send-button, #test-read, #test-write {
+      background: #2196F3;
+      color: white;
       border: none;
-      margin-left: 10px;
-      color: #2196F3;
-      font-size: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 8px;
-      border-radius: 50%;
+      border-radius: 24px;
+      padding: 10px 16px;
+      margin-left: 8px;
       cursor: pointer;
+      font-size: 14px;
     }
     
-    #send-button svg {
-      width: 24px;
-      height: 24px;
-      fill: #2196F3;
+    #test-area {
+      display: flex;
+      padding: 8px;
+      background: #f5f5f5;
+      border-top: 1px solid #eee;
     }
     
-    #send-button:disabled svg {
-      fill: #ccc;
+    #test-read, #test-write {
+      background: #888;
+      flex: 1;
     }
     
-    .timestamp {
-      font-size: 11px;
-      color: #999;
-      margin-top: 4px;
-    }
-    
-    .clearfix::after {
-      content: "";
-      clear: both;
-      display: table;
+    #debug {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 10px;
+      background: rgba(0,0,0,0.8);
+      color: #00ff00;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      overflow-y: auto;
+      max-height: 200px;
+      z-index: 1000;
     }
     
     /* Fix for iOS height issues */
@@ -151,70 +127,38 @@
         height: -webkit-fill-available;
       }
     }
-    
-    /* Hide status indicator */
-    .connection-status {
-      display: none;
-    }
-    
-    /* Debug panel - hidden but can be shown by adding "?debug=1" to URL */
-    #debug-panel {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(0,0,0,0.8);
-      color: #00ff00;
-      font-family: monospace;
-      font-size: 10px;
-      padding: 5px;
-      max-height: 100px;
-      overflow-y: auto;
-      z-index: 1000;
-    }
   </style>
 </head>
 <body>
   <div class="chat-container">
-    <div id="messages" class="messages"></div>
+    <div id="messages"></div>
     <div class="input-area">
-      <input type="text" id="message-input" placeholder="Type a message" autocomplete="off" autocorrect="on" spellcheck="on">
-      <button id="send-button" disabled>
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-        </svg>
-      </button>
+      <input type="text" id="message-input" placeholder="Type a message">
+      <button id="send-button">Send</button>
+    </div>
+    <div id="test-area">
+      <button id="test-write">Test Write</button>
+      <button id="test-read">Test Read</button>
     </div>
   </div>
   
-  <div id="debug-panel"></div>
-
-  <!-- Firebase App -->
+  <div id="debug">Debug info will appear here...</div>
+  
+  <!-- Load Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <!-- Firebase Database -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-
+  
   <script>
-    // Debug logging (enable with ?debug=1 in URL)
-    const urlParams = new URLSearchParams(window.location.search);
-    const debugMode = urlParams.get('debug') === '1';
-    const debugPanel = document.getElementById('debug-panel');
-    
-    if (debugMode) {
-      debugPanel.style.display = 'block';
-    }
-    
+    // Debug logging function
     function log(message) {
+      const debug = document.getElementById('debug');
+      const time = new Date().toLocaleTimeString();
+      debug.innerHTML += `[${time}] ${message}\n`;
+      debug.scrollTop = debug.scrollHeight;
       console.log(message);
-      if (debugMode) {
-        const time = new Date().toLocaleTimeString();
-        debugPanel.innerHTML += `[${time}] ${message}<br>`;
-        debugPanel.scrollTop = debugPanel.scrollHeight;
-      }
     }
     
-    // ======== CONFIGURATION SECTION - EDIT THESE VALUES ========
+    // Your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyBw-lFRPy_OIHDXneC-SHaQG0cMK6RCOeo",
       authDomain: "family-7fa14.firebaseapp.com",
@@ -225,244 +169,115 @@
       appId: "1:725704438162:web:87a7cbad460726fa49114b"
     };
     
-    // Chat identifier
-    const chatId = 'family-chat-1';
-    
-    // How long messages are kept before auto-deletion (in hours)
-    const messageRetentionHours = 24;
-    // ======== END CONFIGURATION SECTION ========
-
-    // DOM elements
-    const messagesContainer = document.getElementById('messages');
-    const messageInput = document.getElementById('message-input');
-    const sendButton = document.getElementById('send-button');
-    
-    // Variables
-    let firebase, database, messagesRef;
-    let isConnected = false;
-    
-    // Generate a unique ID for this user
-    const userId = 'user_' + Math.random().toString(36).substring(2, 9);
-    log(`Generated user ID: ${userId}`);
-    
-    // Initialize app
-    initializeApp();
-    
-    function initializeApp() {
-      try {
-        log("Initializing Firebase...");
-        
-        // Initialize Firebase
-        firebase = window.firebase.initializeApp(firebaseConfig);
-        database = firebase.database();
-        
-        log("Firebase initialized successfully");
-        
-        // Test database permissions
-        database.ref('.info/connected').once('value')
-          .then(() => log("Read permission confirmed"))
-          .catch(err => log("Read permission error: " + err.message));
-
-        database.ref('permission_test').set(true)
-          .then(() => {
-            log("Write permission confirmed");
-            database.ref('permission_test').remove();
-          })
-          .catch(err => log("Write permission error: " + err.message));
-        
-        // Set reference to this specific chat's messages
-        messagesRef = database.ref(`chats/${chatId}/messages`);
-        
-        // Check connection status
-        const connectedRef = database.ref('.info/connected');
-        connectedRef.on('value', (snap) => {
-          isConnected = snap.val() === true;
-          if (isConnected) {
-            log("Connected to Firebase");
-            sendButton.disabled = !messageInput.value.trim();
-            
-            // Load messages once connected
-            loadMessages();
-          } else {
-            log("Disconnected from Firebase");
-            sendButton.disabled = true;
-          }
-        }, (error) => {
-          log("Connection error: " + error.message);
-          sendButton.disabled = true;
-        });
-        
-        // Set up event listeners
-        setupEventListeners();
-        
-        // Start cleanup job
-        startCleanupJob();
-      } catch (error) {
-        log("Error initializing app: " + error.message);
-        alert("Error connecting to chat. Please check your configuration.");
-      }
-    }
-    
-    function loadMessages() {
-      // Clear existing messages first
-      messagesContainer.innerHTML = '';
+    // Initialize Firebase
+    try {
+      log("Initializing Firebase...");
+      const app = firebase.initializeApp(firebaseConfig);
+      log("Firebase initialized successfully.");
       
-      log("Loading messages...");
+      const db = firebase.database();
+      log("Database reference created.");
       
-      messagesRef.on('child_added', (snapshot) => {
+      // Generate a random user ID
+      const userId = "user_" + Math.floor(Math.random() * 1000000);
+      log(`Using user ID: ${userId}`);
+      
+      // Reference to messages
+      const messagesRef = db.ref("simple-messages");
+      log(`Created reference to 'simple-messages' path.`);
+      
+      // Set up UI elements
+      const messagesDiv = document.getElementById("messages");
+      const messageInput = document.getElementById("message-input");
+      const sendButton = document.getElementById("send-button");
+      const testWriteButton = document.getElementById("test-write");
+      const testReadButton = document.getElementById("test-read");
+      
+      // Listen for messages
+      messagesRef.on("child_added", (snapshot) => {
         try {
           const message = snapshot.val();
-          if (!message) return;
-          
           log(`Message received: ${JSON.stringify(message)}`);
           
-          displayMessage(message);
+          const messageElement = document.createElement("div");
+          messageElement.className = message.userId === userId ? "sent" : "received";
+          messageElement.textContent = `${message.text} (${new Date(message.timestamp).toLocaleTimeString()})`;
+          
+          messagesDiv.appendChild(messageElement);
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
         } catch (error) {
-          log("Error processing message: " + error.message);
+          log(`Error displaying message: ${error.message}`);
         }
       }, (error) => {
-        log("Error loading messages: " + error.message);
-      });
-    }
-    
-    function displayMessage(message) {
-      const isCurrentUser = message.userId === userId;
-      
-      // Create message row
-      const messageRow = document.createElement('div');
-      messageRow.classList.add('message-row', isCurrentUser ? 'sent' : 'received');
-      
-      // Format timestamp
-      let timeString = "Just now";
-      try {
-        const messageDate = new Date(message.timestamp);
-        timeString = messageDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-      } catch (err) {
-        log("Error formatting time: " + err.message);
-      }
-      
-      // Set message content
-      messageRow.innerHTML = `
-        <div class="message">${escapeHtml(message.text)}</div>
-        <div class="timestamp">${timeString}</div>
-      `;
-      
-      // Add to container
-      messagesContainer.appendChild(messageRow);
-      
-      // Scroll to bottom
-      scrollToBottom();
-    }
-    
-    function scrollToBottom() {
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-    
-    function setupEventListeners() {
-      // Send button click
-      sendButton.addEventListener('click', sendMessage);
-      
-      // Enter key press
-      messageInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          sendMessage();
-        }
+        log(`Error listening for messages: ${error.message}`);
       });
       
-      // Input changes (for enabling/disabling send button)
-      messageInput.addEventListener('input', () => {
-        sendButton.disabled = !messageInput.value.trim() || !isConnected;
-      });
-      
-      // Handle page visibility changes to refresh connection
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-          database.ref('.info/connected').once('value');
-        }
-      });
-    }
-    
-    function sendMessage() {
-      const text = messageInput.value.trim();
-      if (!text || !isConnected) return;
-      
-      // Disable the button immediately 
-      sendButton.disabled = true;
-      
-      const newMessage = {
-        text: text,
-        userId: userId,
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-      };
-      
-      log("Sending message: " + text);
-      
-      // Clear the input before sending
-      const savedText = messageInput.value;
-      messageInput.value = '';
-      
-      // Add to database with error handling
-      messagesRef.push(newMessage)
-        .then(() => {
-          log("Message sent successfully!");
-        })
-        .catch(error => {
-          log("Error sending message: " + error.message);
-          
-          // Restore the text if sending failed
-          messageInput.value = savedText;
-          sendButton.disabled = false;
-        });
-    }
-    
-    function startCleanupJob() {
-      // Auto-delete old messages
-      function cleanupOldMessages() {
-        if (!isConnected) return;
+      // Send message function
+      function sendMessage() {
+        const text = messageInput.value.trim();
+        if (!text) return;
         
-        try {
-          const cutoffTime = Date.now() - (messageRetentionHours * 60 * 60 * 1000);
-          messagesRef.orderByChild('timestamp').endAt(cutoffTime).once('value', (snapshot) => {
-            const count = snapshot.numChildren();
-            if (count > 0) {
-              log(`Cleaning up ${count} old messages`);
-              snapshot.forEach((childSnapshot) => {
-                childSnapshot.ref.remove().catch(err => {
-                  log("Error removing old message: " + err.message);
-                });
-              });
-            }
-          }).catch(err => {
-            log("Error fetching old messages: " + err.message);
+        log(`Trying to send message: "${text}"`);
+        
+        const message = {
+          text: text,
+          userId: userId,
+          timestamp: Date.now()
+        };
+        
+        // Clear input
+        messageInput.value = "";
+        
+        // Push to Firebase
+        messagesRef.push(message)
+          .then(() => {
+            log("Message sent successfully!");
+          })
+          .catch((error) => {
+            log(`Error sending message: ${error.message}`);
           });
-        } catch (error) {
-          log("Error in message cleanup: " + error.message);
-        }
       }
       
-      // Run cleanup every hour
-      setInterval(cleanupOldMessages, 60 * 60 * 1000);
+      // Test write function
+      function testWrite() {
+        log("Testing write permission...");
+        db.ref("test-write").set({
+          timestamp: Date.now(),
+          test: "write"
+        })
+        .then(() => {
+          log("Write test successful!");
+        })
+        .catch((error) => {
+          log(`Write test failed: ${error.message}`);
+        });
+      }
       
-      // Initial cleanup
-      setTimeout(cleanupOldMessages, 5000);
+      // Test read function
+      function testRead() {
+        log("Testing read permission...");
+        db.ref(".info/connected").once("value")
+          .then((snapshot) => {
+            log(`Read test successful! Connected: ${snapshot.val()}`);
+          })
+          .catch((error) => {
+            log(`Read test failed: ${error.message}`);
+          });
+      }
       
-      // Keep-alive ping every 4 minutes
-      setInterval(() => {
-        if (document.visibilityState === 'visible') {
-          database.ref('.info/connected').once('value');
-        }
-      }, 4 * 60 * 1000);
-    }
-    
-    // Helper function to escape HTML
-    function escapeHtml(unsafe) {
-      return unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+      // Event listeners
+      sendButton.addEventListener("click", sendMessage);
+      messageInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+      });
+      testWriteButton.addEventListener("click", testWrite);
+      testReadButton.addEventListener("click", testRead);
+      
+      // Initial tests
+      testRead();
+      
+    } catch (error) {
+      log(`Error in setup: ${error.message}`);
     }
   </script>
 </body>
