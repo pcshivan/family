@@ -255,11 +255,11 @@
     const accessToken = urlParams.get('token');
     
     // Authentication check
-    if (accessToken !== validToken) {
+    if (validToken === '' || accessToken === validToken) {
+      initializeApp();
+    } else {
       document.body.innerHTML = '<div style="text-align:center;padding:20px;">Access denied</div>';
       console.error("Invalid access token");
-    } else {
-      initializeApp();
     }
     
     function initializeApp() {
