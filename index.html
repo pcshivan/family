@@ -110,9 +110,10 @@
     </div>
   </div>
   
-  <!-- Load Firebase (using older version for more reliable compatibility) -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<!-- Load Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   
   <script>
     // Firebase configuration
@@ -179,8 +180,11 @@
           
           // Push to Firebase
           messagesRef.push(message)
+            .then(() => {
+              log("Message sent successfully!");
+            })
             .catch((error) => {
-              console.error("Error sending message:", error);
+              log(`Error sending message: ${error.message}`);
             });
         }
         
