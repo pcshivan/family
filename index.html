@@ -175,16 +175,16 @@
             timestamp: Date.now()
           };
           
-          // Clear input
-          messageInput.value = "";
-          
+                   
           // Push to Firebase
           messagesRef.push(message)
             .then(() => {
-              log("Message sent successfully!");
+              console.log("Message sent successfully!");
+               // Clear input
+              messageInput.value = "";
             })
             .catch((error) => {
-              log(`Error sending message: ${error.message}`);
+              console.log(`Error sending message: ${error.message}`);
             });
         }
         
