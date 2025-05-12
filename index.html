@@ -265,6 +265,19 @@
         firebase = window.firebase.initializeApp(firebaseConfig);
         database = firebase.database();
         
+        // Test database permissions
+        console.log("Testing database permissions...");
+        database.ref('.info/connected').once('value')
+          .then(() => console.log("Read permission confirmed"))
+          .catch(err => console.error("Read permission error:", err));
+
+        database.ref('permission_test').set(true)
+          .then(() => {
+            console.log("Write permission confirmed");
+            database.ref('permission_test').remove();
+          })
+          .catch(err => console.error("Write permission error:", err));
+        
         // Set reference to this specific chat's messages
         messagesRef = database.ref(`chats/${chatId}/messages`);
         
@@ -277,7 +290,7 @@
           isConnected = snap.val() === true;
           if (isConnected) {
             updateConnectionStatus('connected', 'Connected');
-            sendButton.disabled = false;
+            sendButton.disabled = !messageInput.value.trim();
             
             // Load messages once connected
             loadMessages();
@@ -403,47 +416,52 @@
       const text = messageInput.value.trim();
       if (!text || !isConnected) return;
       
+      // Disable the button immediately to prevent double-sends
+      sendButton.disabled = true;
+      
       const newMessage = {
         text: text,
         userId: userId,
         timestamp: firebase.database.ServerValue.TIMESTAMP,
         notified: false
       };
+      
       console.log("Attempting to send message:", newMessage);
+      
+      // Clear the input before sending
+      const savedText = messageInput.value;
+      messageInput.value = '';
+      
+      // Add to database with error handling
       messagesRef.push(newMessage)
         .then(() => {
           console.log("Message sent successfully!");
-          messageInput.value = '';
-          sendButton.disabled = true;
         })
         .catch(error => {
           console.error("Error details:", error);
           alert("Failed to send message. Please try again.");
-        });
-      // Add to database
-      messagesRef.push(newMessage)
-        .then(() => {
-          messageInput.value = '';
-          sendButton.disabled = true;
-        })
-        .catch(error => {
-          console.error("Error sending message:", error);
-          alert("Failed to send message. Please try again.");
+          // Restore the text if sending failed
+          messageInput.value = savedText;
+          sendButton.disabled = false;
         });
     }
     
     function showNotification(messageText) {
       // Browser notifications
-      if (Notification.permission === "granted") {
-        const notification = new Notification("New message", {
-          body: messageText.length > 50 ? messageText.substring(0, 47) + "..." : messageText,
-          icon: "https://www.google.com/favicon.ico" // Generic icon
-        });
-        
-        // Auto close after 4 seconds
-        setTimeout(() => {
-          notification.close();
-        }, 4000);
+      if ('Notification' in window && Notification.permission === "granted") {
+        try {
+          const notification = new Notification("New message", {
+            body: messageText.length > 50 ? messageText.substring(0, 47) + "..." : messageText,
+            icon: "https://www.google.com/favicon.ico" // Generic icon
+          });
+          
+          // Auto close after 4 seconds
+          setTimeout(() => {
+            notification.close();
+          }, 4000);
+        } catch (e) {
+          console.error("Notification error:", e);
+        }
       }
       
       // Notification sound (simple beep)
@@ -465,16 +483,19 @@
         }, 200);
       } catch (e) {
         // Silent failure if audio not supported
+        console.error("Audio error:", e);
       }
     }
     
     function requestNotificationPermission() {
       // Only request permission after user interaction
-      messageInput.addEventListener('click', () => {
-        if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-          Notification.requestPermission();
-        }
-      }, { once: true });
+      if ('Notification' in window) {
+        messageInput.addEventListener('click', () => {
+          if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+            Notification.requestPermission();
+          }
+        }, { once: true });
+      }
     }
     
     function startCleanupJob() {
