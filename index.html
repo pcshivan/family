@@ -409,7 +409,17 @@
         timestamp: firebase.database.ServerValue.TIMESTAMP,
         notified: false
       };
-      
+      console.log("Attempting to send message:", newMessage);
+      messagesRef.push(newMessage)
+        .then(() => {
+          console.log("Message sent successfully!");
+          messageInput.value = '';
+          sendButton.disabled = true;
+        })
+        .catch(error => {
+          console.error("Error details:", error);
+          alert("Failed to send message. Please try again.");
+        });
       // Add to database
       messagesRef.push(newMessage)
         .then(() => {
